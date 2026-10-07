@@ -6,6 +6,8 @@ import {
   map,
   mergeAll,
   take,
+  catchError,
+  throwError,
   Observable,
 } from "rxjs";
 import axios from "axios";
@@ -21,7 +23,13 @@ export class RxjsService {
         map((res: any) => res.data.items),
         mergeAll(),
       )
-      .pipe(take(count));
+      .pipe(
+          take(count),
+          catchError((err) => {
+            console.error(err?.message);
+            return throwError(() => new Error(err?.message));
+          }),
+      );
   }
 
   private getGitlab(text: string, count: number): Observable<any> {
@@ -30,18 +38,21 @@ export class RxjsService {
             map((res: any) => res.data),
             mergeAll(),
         )
-        .pipe(take(count));
+        .pipe(
+            take(count),
+            catchError((err) => {
+              console.error(err?.message);
+              return throwError(() => new Error(err?.message));
+            }),
+        );
   }
 
   async searchRepositories(text: string, hub: string): Promise<any> {
-    console.log("hub = ", hub);
     const source$ =
         hub === 'gitlab'
             ? this.getGitlab(text, 10)
             : this.getGithub(text, 10);
-
     const data$ = source$.pipe(toArray());
-    data$.subscribe(() => {});
     return await firstValueFrom(data$);
   }
 }
